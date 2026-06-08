@@ -3,7 +3,7 @@
 // @namespace    https://github.com/jcnva
 // @version      1.0.0
 // @description  Userscript to filter ebird barcharts against your personal eBird lifelist, sort species by frequency, and chart Lifer Potential by Week  
-// @author       You
+// @author       jcnva
 // @match        https://ebird.org/barchart*
 // @grant        none
 // @run-at       document-end
