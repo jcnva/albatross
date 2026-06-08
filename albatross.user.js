@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Albatross (V1.0.0)
+// @name         Albatross
 // @namespace    https://github.com/jcnva
 // @version      1.0.0
-// @description  Filters barcharts against your lifelist
-// @author       jcnva
+// @description  Userscript to filter ebird barcharts against your personal eBird lifelist, sort species by frequency, and chart Lifer Potential by Week  
+// @author       You
 // @match        https://ebird.org/barchart*
 // @grant        none
 // @run-at       document-end
@@ -12,16 +12,18 @@
 (function() {
     'use strict';
 
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
     // 1. UI Styles
     const style = document.createElement('style');
     style.textContent = `
         #ett-target-tool { position: fixed; bottom: 20px; right: 20px; width: 350px; background: white; border: 2px solid #4a90e2; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 999999; }
-        #ett-header { background: #4a90e2; color: white; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; }
+        #ett-header { background: #4a90e2; color: white; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; display: flex; align-items: center; }
         #ett-body { padding: 15px; display: block; }
         .ett-btn { background: #28a745; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
         .ett-btn.revert { background: #6c757d; }
         .ett-score-badge { font-size: 10px; background: #eef; color: #4a90e2; padding: 2px 5px; border-radius: 3px; margin-left: 8px; font-weight: bold; }
-        #ett-count-display { font-weight: bold; color: #4a90e2; margin-top: 10px; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
+        #ett-count-display { font-weight: bold; color: #4a90e2; margin-top: 10px; text-align: center; border-top: 1px solid #eee; padding-top: 8px; line-height: 1.4; }
         #ett-chart-container { display: none; margin-top: 15px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; }
     `;
     document.head.appendChild(style);
@@ -30,14 +32,17 @@
     const container = document.createElement('div');
     container.id = 'ett-target-tool';
     container.innerHTML = `
-        <div id="ett-header">🎯 Filter Barchart</div>
+        <div id="ett-header">
+            <img src="https://cdn-icons-png.flaticon.com/512/3823/3823044.png" style="width: 20px; height: 20px; margin-right: 8px;" alt="Albatross">
+            Albatross
+        </div>
         <div id="ett-body">
             <label style="font-size:11px; font-weight:bold; color:#555;">Upload Lifelist CSV (Saves Automatically):</label>
             <input type="file" id="ett-csv-upload" accept=".csv" style="width:100%; margin-bottom:5px; font-size:12px;" />
             <button id="ett-toggle" class="ett-btn">Apply Filter & Sort</button>
             <div id="ett-chart-container"></div>
             <div id="ett-count-display">Status: Original Layout</div>
-            <div id="ett-status" style="font-size: 11px; margin-top:5px; text-align:center;">Ready.</div>
+            <div id="ett-status" style="font-size: 11px; margin-top:5px; text-align:center; color:#555;">Ready.</div>
         </div>
     `;
     document.body.appendChild(container);
@@ -88,14 +93,13 @@
         });
 
         const maxTally = Math.max(...weeklyTally) || 1;
-        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         let chartHtml = `<div style="text-align:center; font-weight:bold; font-size:12px; margin-bottom:8px; color:#333;">Lifer Potential by Week</div>`;
         chartHtml += `<div style="display:flex; height:80px; align-items:flex-end; border-bottom:2px solid #555; gap:1px;">`;
         
         weeklyTally.forEach((val, i) => {
             const height = (val / maxTally) * 100;
             const title = `${monthNames[Math.floor(i/4)]} W${(i%4)+1}: ${val} Pts`;
-            chartHtml += `<div title="${title}" style="flex:1; margin-left:${(i%4===0&&i!==0)?'3px':'0'}; background:#8e44ad; height:${height}%; min-height:1px; transition:background 0.2s;" onmouseover="this.style.background='#d35400'" onmouseout="this.style.background='#8e44ad'"></div>`;
+            chartHtml += `<div title="${title}" style="flex:1; margin-left:${(i%4===0&&i!==0)?'3px':'0'}; background:#5ebd5e; height:${height}%; min-height:1px; transition:background 0.2s;" onmouseover="this.style.background='#449d44'" onmouseout="this.style.background='#5ebd5e'"></div>`;
         });
         
         chartHtml += `</div><div style="display:flex; justify-content:space-between; font-size:9px; color:#777; margin-top:4px;"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span><span>Dec</span></div>`;
@@ -172,8 +176,8 @@
             speciesRows.sort((a, b) => (parseInt(b.dataset.score) || 0) - (parseInt(a.dataset.score) || 0));
             if (masterParent) speciesRows.forEach(row => masterParent.appendChild(row));
 
-            document.getElementById('ett-count-display').textContent = `Visible: ${speciesRows.length}`;
-            document.getElementById('ett-status').textContent = `Sorted (Months ${startMonth}-${endMonth})`;
+            document.getElementById('ett-count-display').innerHTML = `<span style="font-size: 12px; color: #777;">Species in Life List: ${myLifelist.size} <br>Target Species: ${speciesRows.length}</span>`;
+            document.getElementById('ett-status').textContent = `Sorted (${monthNames[startMonth - 1]}-${monthNames[endMonth - 1]})`;
             
             renderChart();
 
@@ -192,6 +196,7 @@
         });
         document.getElementById('ett-chart-container').style.display = 'none';
         document.getElementById('ett-count-display').textContent = "Status: Original Layout";
+        document.getElementById('ett-status').textContent = "Ready.";
     }
 
     const toggleBtn = document.getElementById('ett-toggle');
@@ -267,8 +272,6 @@
             toggleBtn.textContent = "Show Original Layout"; 
             toggleBtn.classList.add('revert'); 
             isFiltered = true;
-            
-            document.getElementById('ett-status').textContent = `Loaded ${speciesSet.size} countable species & Applied!`;
         };
         reader.readAsText(file);
     });
@@ -276,7 +279,6 @@
     // --- ON LOAD: Auto-Resume Saved Data ---
     const savedList = JSON.parse(localStorage.getItem('ebirdLifelist_csv_saved') || '[]');
     if (savedList.length > 0) {
-        document.getElementById('ett-status').textContent = `Auto-loaded ${savedList.length} species from memory.`;
         executeFilterAndSort();
         toggleBtn.textContent = "Show Original Layout";
         toggleBtn.classList.add('revert');
